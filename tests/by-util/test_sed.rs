@@ -4385,3 +4385,24 @@ fn test_posix_n_on_last_line_of_each_separate_file() {
         .succeeds()
         .stdout_is("a,b\na,b\n");
 }
+
+#[test]
+fn test_invalid_character_class_name() {
+    // `word` and `ascii` are names the regex engine knows but POSIX doesn't.
+    for script in ["s/[[:foo:]]/X/", "s/[[:word:]]/X/", "s/[[:ascii:]]/X/"] {
+        new_ucmd!()
+            .arg(script)
+            .fails()
+            .code_is(1)
+            .stderr_contains("Invalid character class name");
+    }
+}
+
+#[test]
+fn test_valid_character_class_names_still_work() {
+    new_ucmd!()
+        .arg("s/[[:digit:][:upper:]]/X/g")
+        .pipe_in("a1B\n")
+        .succeeds()
+        .stdout_is("aXX\n");
+}

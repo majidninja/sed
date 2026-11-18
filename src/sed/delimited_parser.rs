@@ -234,6 +234,13 @@ pub fn parse_char_escape(
     Ok(decoded)
 }
 
+/// The names POSIX allows between `[:` and `:]` in a bracket expression.
+/// The regex engines accept more (e.g. `word`, `ascii`), which GNU sed rejects.
+const POSIX_CLASS_NAMES: [&[u8]; 12] = [
+    b"alnum", b"alpha", b"blank", b"cntrl", b"digit", b"graph", b"lower", b"print", b"punct",
+    b"space", b"upper", b"xdigit",
+];
+
 /// Parse a POSIX RE character class returning it as bytes.
 /// This functionality is needed to avoid terminating delimited
 /// sequences when a delimiter appears within a character class.
@@ -300,6 +307,13 @@ fn parse_character_class(
                         line.advance();
                         if !line.eol() && line.current() == ']' {
                             line.advance();
+                            if marker == ':' && !POSIX_CLASS_NAMES.contains(&inner.as_slice()) {
+                                return compilation_error(
+                                    lines,
+                                    line,
+                                    "Invalid character class name",
+                                );
+                            }
                             result.extend_from_slice(&inner);
                             result.push(marker as u8);
                             result.push(b']');
